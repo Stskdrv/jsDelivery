@@ -21,6 +21,11 @@ let login = localStorage.getItem('key');
 
 function toggleModalAuth() {
   modalAuth.classList.toggle('is-open');
+  if (modalAuth.classList.contains('is-open')) {
+    disabledScroll();
+  } else {
+    enabledScroll();
+  }
 
 
 };
@@ -55,8 +60,10 @@ function notAuthorized() {
     login = loginInput.value;
     if (!login) {
       alert('VVedite Login');
+      loginInput.style.borderColor = '#ff0000';
       return false;
     }
+    loginInput.style.borderColor = '';
     localStorage.setItem('key', login);
     toggleModalAuth();
     buttonAuth.removeEventListener('click', toggleModalAuth);
@@ -69,6 +76,11 @@ function notAuthorized() {
   buttonAuth.addEventListener('click', toggleModalAuth);
   closeAuth.addEventListener('click', toggleModalAuth);
   logInForm.addEventListener('submit', logIn);
+  modalAuth.addEventListener('click', function (event) {
+    if (event.target.classList.contains('is-open')) {
+      toggleModalAuth();
+    }
+  })
 
 }
 
