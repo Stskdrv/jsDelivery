@@ -3,15 +3,6 @@
 const cartButton = document.querySelector("#cart-button");
 const modal = document.querySelector(".modal");
 const close = document.querySelector(".close");
-
-cartButton.addEventListener("click", toggleModal);
-close.addEventListener("click", toggleModal);
-
-function toggleModal() {
-  modal.classList.toggle("is-open");
-}
-// day1///
-
 const buttonAuth = document.querySelector('.button-auth');
 const modalAuth = document.querySelector('.modal-auth');
 const closeAuth = document.querySelector('.close-auth');
@@ -25,8 +16,28 @@ const restaurants = document.querySelector('.restaurants');
 const menu = document.querySelector('.menu');
 const logo = document.querySelector('.logo');
 const cardsMenu = document.querySelector('.cards-menu');
+const restaurantTitle = document.querySelector('.restaurant-title');
+const restaurantrating = document.querySelector('.rating');
+const restaurantprice = document.querySelector('.price'); 
+const restaurantcategory = document.querySelector('.category');
+const inputSearch = document.querySelector('.input-search');
+
+
 
 let login = localStorage.getItem('key');
+
+const getData = async (url) => {
+  const response = await fetch(url); // асинхронная функция, получает данные с базы данных, await указывает, что мы дожидаемся получения данных
+  if (!response.ok) {
+    throw new Error(`Ошибка по адресу ${url}, статус ошибка ${response.status}`); //мы указываем, что если статус респонса не ок, т.е есть ошибка, мы указываем по какому адресу эта ошибка
+
+  }
+  return await response.json();
+
+};
+
+getData('./db/partners.json');
+
 
 function toggleModalAuth() {
   modalAuth.classList.toggle('is-open');
@@ -38,7 +49,6 @@ function toggleModalAuth() {
 
 
 };
-
 
 function autorized() {
   function logOut() {
@@ -101,52 +111,83 @@ function checkAuth () {
   }
 }
 
-checkAuth();
+function createCardRestaurant(restaurant) {
+  const { image, kitchen, name, price, stars,products, time_of_delivery: timeOfDelivery } = restaurant; // это деструктуриация массива, вытаскиваем из него элементы
+  
+  const cardRestaurant = document.createElement('a');
+  cardRestaurant.className = 'card card-restaurant';
+  cardRestaurant.products = products;
+  cardRestaurant.info = { kitchen, name, price, stars };
 
-function createCardRestaurant() {
+  
+  // добавляем дата атрибут к карточке(дата продуктс)
   const card = `
-        <a class="card card-restaurant">
-        <img src="img/gusi-lebedi/preview.jpg" alt="image" class="card-image"/>
+        
+        <img src='${image}'  alt="image" class="card-image"/>
         <div class="card-text">
           <div class="card-heading">
-            <h3 class="card-title">Гуси Лебеди</h3>
-            <span class="card-tag tag">75 мин</span>
+            <h3 class="card-title">${name}</h3>
+            <span class="card-tag tag">${timeOfDelivery} мин</span>
           </div>
-          <!-- /.card-heading -->
+          
           <div class="card-info">
             <div class="rating">
-              4.5
+              ${stars}
             </div>
-            <div class="price">От 1 000 ₽</div>
-            <div class="category">Русская кухня</div>
+            <div class="price">От ${price} ₽</div>
+            <div class="category">${kitchen}</div>
           </div>
-          <!-- /.card-info -->
+          
         </div>
-        <!-- /.card-text -->
-      </a>
+        
+      
   `;
 
-  cardsRestaurants.insertAdjacentHTML('beforeend', card);
+  cardRestaurant.insertAdjacentHTML('beforeend', card);
+  cardsRestaurants.insertAdjacentElement('beforeend', cardRestaurant);
 }
 
-createCardRestaurant();
-createCardRestaurant();
-createCardRestaurant();
 
-function createCardGood() {
+// собственная реализация
+// function createDescrGood({ image, kitchen, name, price, stars,products, time_of_delivery: timeOfDelivery }) {
+//   const descr = document.createElement('div');
+//   descr.className = 'section-heading';
+//   descr.insertAdjacentHTML('beforeend', `
+  
+//       <h2 class="section-title restaurant-title">${name}</h2>
+//         <div class="card-info">
+//             <div class="rating">
+//               ${stars}
+//             </div>
+//             <div class="price">От ${price} ₽</div>
+//             <div class="category">${products}</div>
+//           </div>
+        
+//         </div>
+//       <div class="cards cards-menu">
+      
+      
+//       </div>
+    
+//   `);
+//   menu.insertAdjacentElement('beforebegin', descr);
+// }
+
+function createCardGood({ description, id, image, name, price }) {  //Деструктурируем прямо в самой функции, не нужно создавать новую переменную
+
+  
   const card = document.createElement('div');
   card.className = 'card';
   card.insertAdjacentHTML('beforeend', `
   
-    <img src="img/pizza-plus/pizza-vesuvius.jpg" alt="image" class="card-image"/>
+    <img src="${image}" alt="image" class="card-image"/>
     <div class="card-text">
       <div class="card-heading">
-        <h3 class="card-title card-title-reg">Пицца Везувий</h3>
+        <h3 class="card-title card-title-reg">${name}</h3>
       </div>
-      <
+      
       <div class="card-info">
-        <div class="ingredients">Соус томатный, сыр «Моцарелла», ветчина, пепперони, перец
-          «Халапенье», соус «Тобаско», томаты.
+        <div class="ingredients">${description}
         </div>
       </div>
       
@@ -155,7 +196,7 @@ function createCardGood() {
           <span class="button-card-text">В корзину</span>
           <span class="button-cart-svg"></span>
         </button>
-        <strong class="card-price-bold">545 ₽</strong>
+        <strong class="card-price-bold">${price} ₽</strong>
       </div>
     </div>
   `);
@@ -165,30 +206,110 @@ function createCardGood() {
 function openGoods(event) {
   const target = event.target;
 
+  if (login) {
+    const restaurant = target.closest('.card-restaurant');
+    if (restaurant) {
+      cardsMenu.textContent = '';
+      containerPromo.classList.add('hide');
+      restaurants.classList.add('hide');
+      menu.classList.remove('hide');
+      const { name, kitchen, price, stars } = restaurant.info;
+      restaurantTitle.textContent = name;
+      restaurantrating.textContent = stars;
+      restaurantprice.textContent = `От ${price} ₽`;
+      restaurantcategory.textContent = kitchen;
+
+
+      getData(`./db/${restaurant.products}`).then((data) => {
+        data.forEach(createCardGood);
+        
+      })
+    } 
+  } else{
+    toggleModalAuth();
+  };
+
+
   const restaurant = target.closest('.card-restaurant');
 
-  if (restaurant) {
-    containerPromo.classList.add('hide');
-    restaurants.classList.add('hide');
-    menu.classList.remove('hide');
-    cardsMenu.textContent = '';
-    createCardGood();
-    createCardGood();
-    createCardGood();
-  }
+  // вариант запроса регистрации при нажатии на ресторан, работет со сбоями...
+  // if (!login) {
+  //   toggleModalAuth();
+  // } else {
+  //   if (restaurant) {
+  //     containerPromo.classList.add('hide');
+  //     restaurants.classList.add('hide');
+  //     menu.classList.remove('hide');
+  //     cardsMenu.textContent = '';
+  //     createCardGood();
+  //     createCardGood();
+  //     createCardGood();
+  //   }
+  // }
+  
+  
 
 }
 
+function toggleModal() {
+  modal.classList.toggle("is-open");
+}
 
+function init() {
+  getData('./db/partners.json').then(function (data) {
+    data.forEach(createCardRestaurant);
+    
+  });
+  
+  cartButton.addEventListener("click", toggleModal);
+  close.addEventListener("click", toggleModal);
+  cardsRestaurants.addEventListener('click', openGoods);
 
+  logo.addEventListener('click', function()  {
+    containerPromo.classList.remove('hide');
+    restaurants.classList.remove('hide');
+    menu.classList.add('hide');
+  });
+  
+  inputSearch.addEventListener('keypress', function(event) {
 
-cartButton.addEventListener("click", toggleModal);
-close.addEventListener("click", toggleModal);
+    if (event.charCode === 13){
+      const value = event.target.value.trim;
 
+      if (!value) {
+        event.target.value = '';
+        return;
+      }
+      getData('./db/partners.json').then(function (data) {
+        return data.map(function(partner) {
+          return partner.products;
+        });
+        
+      })
+      .then(function (linksProduct) {
+        cardsMenu.textContent = '';
+        linksProduct.forEach( function(link) {
+          getData(`./db/${link}`)
+           .then(function (data) { 
+              const resultSearch = data.filter(function (item) {
+                const name = item.name.tolowerCase();
+                return name.includes(value.toLowerCase()) ;
+              });
+              containerPromo.classList.add('hide');
+              restaurants.classList.add('hide');
+              menu.classList.remove('hide');
+              restaurantTitle.textContent = 'Результат поиска';
+              restaurantrating.textContent = '';
+              restaurantprice.textContent = '';
+              restaurantcategory.textContent = '';
+              resultSearch.forEach(createCardGood);
+            })
+        })
+      })
+    }
+  })
+  
+  checkAuth();
+}
 
-cardsRestaurants.addEventListener('click', openGoods);
-logo.addEventListener('click', () => {
-  containerPromo.classList.remove('hide');
-  restaurants.classList.remove('hide');
-  menu.classList.add('hide');
-})
+init();
