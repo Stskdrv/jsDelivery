@@ -28,7 +28,22 @@ const buttonClearCart = document.querySelector('.clear-cart');
 
 let login = localStorage.getItem('key');
 
-const cart = [];
+// const cart = [];
+
+const cart = JSON.parse(localStorage.getItem(`key_${login}`)) || [];
+
+function saveCart() {
+  localStorage.setItem(`key_${login}`, JSON.stringify(cart));
+}
+function downloadCart() { // пушим данные обратно в корзину, если зашли под логином, у которого уже были товары в корзине
+  if (localStorage.getItem(`key_${login}`)) {
+    const data = JSON.parse(localStorage.getItem(`key_${login}`));
+
+    data.forEach((item) =>{
+      cart.push(item)
+    })
+  }
+}
 
 const getData = async (url) => {
   const response = await fetch(url); // асинхронная функция, получает данные с базы данных, await указывает, что мы дожидаемся получения данных
@@ -285,9 +300,7 @@ function addToCart(event) {
       });
     }
 
-
-
-    
+    saveCart();
   }
 }
 
@@ -312,7 +325,7 @@ function renderCart() {
   
   modalPrice.textContent = totalPrice + 'P';
   
-
+  saveCart();
 }
 // Изучить дата атрибуты подробнее
 function changeCount(event) {
@@ -333,6 +346,7 @@ function changeCount(event) {
     }
 
     renderCart();
+    saveCart();
   }
 
   // if (target.classList.contains('counter-minus')){
@@ -375,7 +389,8 @@ function init() {
   buttonClearCart.addEventListener('click', () => {
     cart.length = 0;
     renderCart();
-  } );
+    saveCart();
+  } )
   inputSearch.addEventListener('keypress', function(event) {
 
     if (event.charCode === 13){
