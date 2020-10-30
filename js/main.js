@@ -21,10 +21,14 @@ const restaurantrating = document.querySelector('.rating');
 const restaurantprice = document.querySelector('.price'); 
 const restaurantcategory = document.querySelector('.category');
 const inputSearch = document.querySelector('.input-search');
-
+const modalBody = document.querySelector('.modal-body');
+const modalPrice = document.querySelector('.modal-pricetag');
+const buttonClearCart = document.querySelector('.clear-cart');
 
 
 let login = localStorage.getItem('key');
+
+const cart = [];
 
 const getData = async (url) => {
   const response = await fetch(url); // асинхронная функция, получает данные с базы данных, await указывает, что мы дожидаемся получения данных
@@ -60,13 +64,15 @@ function autorized() {
     buttonOut.style.display = '';
     buttonOut.removeEventListener('click', logOut);
     checkAuth();
+    cartButton.style.display = '';
 
   }
   console.log('autorized');
   userName.textContent = login;
   buttonAuth.style.display = 'none';
   userName.style.display = 'inline';
-  buttonOut.style.display = 'block';
+  buttonOut.style.display = 'flex';
+  cartButton.style.display = 'flex';
   buttonOut.addEventListener('click', logOut);
 }
 
@@ -173,11 +179,12 @@ function createCardRestaurant(restaurant) {
 //   menu.insertAdjacentElement('beforebegin', descr);
 // }
 
-function createCardGood({ description, id, image, name, price }) {  //Деструктурируем прямо в самой функции, не нужно создавать новую переменную
+function createCardGood({ description, image, name, price, id }) {  //Деструктурируем прямо в самой функции, не нужно создавать новую переменную
 
   
   const card = document.createElement('div');
   card.className = 'card';
+  
   card.insertAdjacentHTML('beforeend', `
   
     <img src="${image}" alt="image" class="card-image"/>
@@ -192,7 +199,7 @@ function createCardGood({ description, id, image, name, price }) {  //Дестр
       </div>
       
       <div class="card-buttons">
-        <button class="button button-primary button-add-cart">
+        <button class="button button-primary button-add-cart" id=${id}>
           <span class="button-card-text">В корзину</span>
           <span class="button-cart-svg"></span>
         </button>
@@ -255,22 +262,120 @@ function toggleModal() {
   modal.classList.toggle("is-open");
 }
 
+function addToCart(event) {
+  const target = event.target;
+  const buttonAddToCart = target.closest('.button-add-cart');
+
+  if (buttonAddToCart) {
+    const card = target.closest('.card');
+    const title = card.querySelector('.card-title').textContent;
+    const cost = card.querySelector('.card-price-bold').textContent;
+    const id = buttonAddToCart.id;
+    const food = cart.find((item) => {
+      return item.id === id;
+    })
+    if (food) {
+      food.count += 1;
+    }else {
+      cart.push({
+        id,
+        title,
+        cost,
+        count: 1
+      });
+    }
+
+
+
+    
+  }
+}
+
+function renderCart() {
+  modalBody.textContent = '';
+  cart.forEach(({ id, title, cost, count }) => {
+    const itemCart = `
+      <div class="food-row">${title}Ролл угорь стандарт</span>
+        <strong class="food-price">${cost}</strong>
+        <div class="food-counter">
+          <button class="counter-button counter-minus" data-id=${id}>-</button>
+          <span class="counter">${count}</span>
+          <button class="counter-button counter-plus" data-id=${id}>+</button>
+        </div>
+      </div>
+    `;
+    modalBody.insertAdjacentHTML('afterbegin', itemCart)
+  });
+  const totalPrice = cart.reduce((result, item) => { 
+    return result + (parseFloat(item.cost)* item.count);
+   }, 0)
+  
+  modalPrice.textContent = totalPrice + 'P';
+  
+
+}
+// Изучить дата атрибуты подробнее
+function changeCount(event) {
+  const target = event.target;
+
+  if (target.classList.contains('counter-button')){
+    const food = cart.find(function(item) {
+      return item.id === target.dataset.id;
+    });
+    if (target.classList.contains('counter-minus')){
+      food.count--;
+      if(food.count === 0) {
+        cart.splice(cart.indexOf(food), 1)
+      }
+    }
+    if (target.classList.contains('counter-plus')){
+      food.count++;
+    }
+
+    renderCart();
+  }
+
+  // if (target.classList.contains('counter-minus')){
+  //   const food = cart.find(function(item) {
+  //     return item.id === target.dataset.id;
+  //   });
+  //   food.count--;
+  //   renderCart();
+  // }
+
+
+  // if (target.classList.contains('counter-plus')){
+  //   const food = cart.find(function(item) {
+  //     return item.id === target.dataset.id;
+  //   });
+  //   food.count++;
+  //   renderCart();
+  // }
+}
+
 function init() {
   getData('./db/partners.json').then(function (data) {
     data.forEach(createCardRestaurant);
     
   });
   
-  cartButton.addEventListener("click", toggleModal);
+  cartButton.addEventListener("click", function(){
+    renderCart();
+    toggleModal();
+  });
   close.addEventListener("click", toggleModal);
   cardsRestaurants.addEventListener('click', openGoods);
-
+  modalBody.addEventListener('click', changeCount);
+  cardsMenu.addEventListener('click', addToCart);
   logo.addEventListener('click', function()  {
     containerPromo.classList.remove('hide');
     restaurants.classList.remove('hide');
     menu.classList.add('hide');
   });
-  
+  buttonClearCart.addEventListener('click', () => {
+    cart.length = 0;
+    renderCart();
+  } );
   inputSearch.addEventListener('keypress', function(event) {
 
     if (event.charCode === 13){
